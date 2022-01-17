@@ -84,6 +84,7 @@ def count_progenitors(nums, starts, main_progs, progs, masses_prev,
     # number of objects of interest
     N_this = len(nums)
     N_merger = np.zeros(len(nums), dtype=np.int64)
+    N_merger_above = np.zeros(len(nums), dtype=np.int64)
     # loop around halos that were marked belonging to this redshift catalog
     for j in range(N_this):
         # select all progenitors
@@ -106,11 +107,13 @@ def count_progenitors(nums, starts, main_progs, progs, masses_prev,
                 if slab_id == slab_prev:
                     idx += offsets[i]
 
-            if (masses_prev[idx] < m_high) and (masses_prev[idx] >= m_low) and (idx != mp):
+            if (masses_prev[idx] < m_high) and (masses_prev[idx] >= m_low) and (prog_ind != mp):
                 N_merger[j] += 1
+            elif (masses_prev[idx] >= m_high) and (prog_ind != mp):
+                N_merger_above[j] += 1 # disqualifying
         
         #if num > 1: print(halo_inds, halo_ind_prev[main_progs[j]])
-    return N_merger
+    return N_merger, N_merger_above
 
 def simple_load(filenames, fields):
     if type(filenames) is str:
