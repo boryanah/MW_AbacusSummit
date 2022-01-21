@@ -107,9 +107,9 @@ def count_progenitors(nums, starts, main_progs, progs, masses_prev,
                 if slab_id == slab_prev:
                     idx += offsets[i]
 
-            if (masses_prev[idx] < m_high) and (masses_prev[idx] >= m_low) and (prog_ind != mp):
+            if (masses_prev[idx] < m_high) and (masses_prev[idx] >= m_low) and (idx != mp):
                 N_merger[j] += 1
-            elif (masses_prev[idx] >= m_high) and (prog_ind != mp):
+            elif (masses_prev[idx] >= m_high) and (idx != mp):
                 N_merger_above[j] += 1 # disqualifying
         
         #if num > 1: print(halo_inds, halo_ind_prev[main_progs[j]])

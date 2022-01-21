@@ -26,7 +26,7 @@ print("n_merger m2 == 1 = ", np.sum(n_merger_m2 == 1))
 print("n_merger m3 == 1 = ", np.sum(n_merger_m3 == 1))
 
 print("all are one = ", np.sum((n_merger_m1+n_merger_above_m1 == 1) & (n_merger_m2+n_merger_above_m2 == 1) & (n_merger_m3+n_merger_above_m3 == 1)))
-
+print("andromeda = ", np.sum(andromeda))
 print("no above = ", np.sum((n_merger_above_m1 == 0) & (n_merger_above_m2 == 0) & (n_merger_above_m3 == 0)))
 print("all are one = ", np.sum((n_merger_m1 == 1) & (n_merger_m2 == 1) & (n_merger_m3 == 1)))
 print("all are one and andromeda = ", np.sum((n_merger_m1 == 1) & (n_merger_m2 == 1) & (n_merger_m3 == 1) & andromeda))
