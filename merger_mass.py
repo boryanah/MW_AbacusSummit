@@ -91,22 +91,24 @@ ind_stop = np.argmin(np.abs(zs_mt - z_stop))
 inds_fn_this = np.arange(n_superslabs, dtype=int)
 inds_fn_prev = np.arange(n_superslabs, dtype=int)
 
-# Constraint 1: mass today TODO: would need to be corrected for evolution between z = 0.1 and z = 0
-h = 0.6736
-mass_fin_lb = 0.9e12*h # Msun/h
-mass_fin_hb = 1.2e12*h # Msun/h
-print("final mass logM", np.log10(mass_fin_lb), np.log10(mass_fin_hb))
-print(f"final mass M {mass_fin_lb:.2e} {mass_fin_hb:.2e}")
-
 # fields to extract from the merger trees
 fields_mt = ['HaloIndex', 'HaloMass', 'Position', 'MainProgenitor', 'IsPotentialSplit', 'Progenitors', 'NumProgenitors']
 
+# load merger and andromeda information
 n_merger_m1 = np.load(f"data/n_merger_m1_{sim_name:s}.npy")
 n_merger_m2 = np.load(f"data/n_merger_m2_{sim_name:s}.npy")
 n_merger_m3 = np.load(f"data/n_merger_m3_{sim_name:s}.npy")
+n_merger_above_m1 = np.load(f"data/n_merger_above_m1_{sim_name:s}.npy")
+n_merger_above_m2 = np.load(f"data/n_merger_above_m2_{sim_name:s}.npy")
+n_merger_above_m3 = np.load(f"data/n_merger_above_m3_{sim_name:s}.npy")
 missing = np.load(f"data/missing_{sim_name:s}.npy")
-int_selection = (n_merger_m1 == 1) & (n_merger_m2 == 1) & (n_merger_m3 == 1) & missing
-all_selection = (missing)
+andromeda = np.load(f"data/andromeda_{sim_name:s}.npy")
+
+int_selection = (n_merger_m1 == 1) & (n_merger_m2 == 1) & (n_merger_m3 == 1) & (n_merger_above_m1 == 0) & (n_merger_above_m2 == 0) & (n_merger_above_m3 == 0) & andromeda
+
+# load initial indices of MW halos
+inds_mw = np.load(f"data/inds_mw_{sim_name:s}.npy")
+assert len(inds_mw) == len(int_selection), f"one is {len(inds_mw):d} and the other {len(int_selection):d}"
 
 # loop over redshifts
 for i in range(ind_start, ind_stop + 1):
@@ -130,12 +132,11 @@ for i in range(ind_start, ind_stop + 1):
     Merger_this = mt_data_this['merger']
 
     if i == 0:
-        initial_selection = (Merger_this['HaloMass'] > mass_fin_lb) & (Merger_this['HaloMass'] <= mass_fin_hb) & (Merger_this['MainProgenitor'] > 0) & (Merger_this['IsPotentialSplit'] == 0)
+        #initial_selection = (Merger_this['HaloMass'] > mass_fin_lb) & (Merger_this['HaloMass'] <= mass_fin_hb) & (Merger_this['MainProgenitor'] > 0) & (Merger_this['IsPotentialSplit'] == 0)
         merger_mass = np.zeros(len(zs_mt[:(ind_stop+1)]))
         merger_mass_int = np.zeros(len(zs_mt[:(ind_stop+1)]))
-        main_progs = np.arange(len(Merger_this['HaloMass']), dtype=int)[initial_selection]
+        main_progs = np.arange(len(Merger_this['HaloMass']), dtype=int)[inds_mw]
         main_progs_int = main_progs[int_selection]
-        main_progs = main_progs[all_selection]
     merger_mass[i] = np.median(Merger_this['HaloMass'][main_progs[main_progs > 0]])
     merger_mass_int[i] = np.median(Merger_this['HaloMass'][main_progs_int[main_progs_int > 0]])
 

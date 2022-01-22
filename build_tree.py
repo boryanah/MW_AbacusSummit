@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 from scipy.optimize import fsolve
 from scipy import spatial
 from colossus.cosmology import cosmology as coco
-
+from abacusnbody.data.compaso_halo_catalog import CompaSOHaloCatalog
 from tools.merger import simple_load, get_halos_per_slab, get_one_header, unpack_inds, count_progenitors
 from tools.compute_dist import dist
 
@@ -70,8 +70,8 @@ def correct_inds(halo_ids, N_halos_slabs, slabs, inds_fn):
 
 # simulation parameters
 #sim_name = "AbacusSummit_highbase_c000_ph100" # smaller simulation
-sim_name = sys.argv[1]
 #sim_name = "AbacusSummit_base_c000_ph002" # larger simulation
+sim_name = sys.argv[1]
 merger_parent = Path("/global/project/projectdirs/desi/cosmosim/Abacus/merger")
 catalog_parent = Path("/global/cscratch1/sd/boryanah/new_lc_halos/")
 merger_dir = merger_parent / sim_name
@@ -84,6 +84,7 @@ z_stop = 2.25
 
 # load zs from high to low
 data_path = Path("/global/homes/b/boryanah/repos/abacus_lc_cat/data_mt")
+
 # if merger tree redshift information has been saved, load it (if not, save it)
 if not os.path.exists(data_path / sim_name / "zs_mt.npy"):
     # all merger tree snapshots and corresponding redshifts
@@ -239,7 +240,16 @@ info_this = Merger_this['MainProgenitor'] > 0
 notsplit_this = Merger_this['IsPotentialSplit'] == 0
 
 # select Milky Way sized halos (by total mass)
-mass_selection = (Merger_this['HaloMass'] > mass_fin_lb) & (Merger_this['HaloMass'] <= mass_fin_hb)
+#mass_selection = (Merger_this['HaloMass'] > mass_fin_lb) & (Merger_this['HaloMass'] <= mass_fin_hb)
+
+# tuks load the cleaned halos and select halo masses that way (everything else can be the same -- doesn't need to have merger info and notsplit but I am pretty sure this is guaranteed
+print("loading")
+sim_dir = f"/global/project/projectdirs/desi/cosmosim/Abacus/{sim_name:s}/halos/z{z_this:.3f}/halo_info/"
+cat = CompaSOHaloCatalog(sim_dir, load_subsamples=False, fields = ['N'])
+part_mass = cat.header['ParticleMassHMsun']
+mass_halo = cat.halos['N'].astype(np.float64) * part_mass
+mass_selection = (mass_halo > mass_fin_lb) & (mass_halo <= mass_fin_hb)
+print("loaded")
 
 # select MW-sized halos with a single Andromeda-like halo in the vicinity
 initial_selection = mass_selection & info_this & notsplit_this
@@ -247,6 +257,8 @@ main_progs = Merger_this['MainProgenitor'][initial_selection]
 index = Merger_this['HaloIndex'][initial_selection]
 position = Merger_this['Position'][initial_selection]+Lbox/2.
 N_mw = np.sum(initial_selection)
+index_all = np.arange(len(mass_selection), dtype=int)
+np.save(f"data/inds_mw_{sim_name:s}.npy", index_all[initial_selection]); quit()
 print("number of Milky Way sized halos with merger info", np.sum(initial_selection)) # teeny fraction don't have it
 
 # halos to build main progenitor
@@ -263,8 +275,9 @@ missing = np.ones(N_mw, dtype=bool)
 andromeda = np.zeros(N_mw, dtype=bool)
 
 # start TESTING just to make it faster
-# would select Andromeda-like galaxies and find their positions and then compute the distance for each milky way one maybe by building a tree  and finding how many are within spherical ball but excluding innermost (and not potential splits) # tuks
-mass_selection_and = (Merger_this['HaloMass'] > mass_fut_lb) & (Merger_this['HaloMass'] <= mass_fut_hb)
+# would select Andromeda-like galaxies and find their positions and then compute the distance for each milky way one maybe by building a tree  and finding how many are within spherical ball but excluding innermost (and not potential splits) 
+# tuks
+mass_selection_and = (mass_halo > mass_fut_lb) & (mass_halo <= mass_fut_hb)
 andromeda_selection = mass_selection_and & info_this & notsplit_this
 pos_andro = Merger_this['Position'][andromeda_selection]+Lbox/2.
 index_andro = Merger_this['HaloIndex'][andromeda_selection]
@@ -309,7 +322,7 @@ for i in range(len(list_hb)):
 print("percentage MW-sized halos with Andromeda-sized halos beside them = ", np.sum(andromeda)*100./len(andromeda))
 np.save(f"data/andromeda_{sim_name:s}.npy", andromeda)
 # end TESTING
-quit()
+
 # we check for z_this (and not prev) because they were distinct in the previous redshift
 
 
