@@ -92,7 +92,7 @@ inds_fn_this = np.arange(n_superslabs, dtype=int)
 inds_fn_prev = np.arange(n_superslabs, dtype=int)
 
 # fields to extract from the merger trees
-fields_mt = ['HaloIndex', 'HaloMass', 'Position', 'MainProgenitor', 'IsPotentialSplit', 'Progenitors', 'NumProgenitors']
+fields_mt = ['HaloMass', 'MainProgenitor', 'IsPotentialSplit']
 
 # load merger and andromeda information
 n_merger_m1 = np.load(f"data/n_merger_m1_{sim_name:s}.npy")
@@ -104,7 +104,7 @@ n_merger_above_m3 = np.load(f"data/n_merger_above_m3_{sim_name:s}.npy")
 missing = np.load(f"data/missing_{sim_name:s}.npy")
 andromeda = np.load(f"data/andromeda_{sim_name:s}.npy")
 
-int_selection = (n_merger_m1 == 1) & (n_merger_m2 == 1) & (n_merger_m3 == 1) & (n_merger_above_m1 == 0) & (n_merger_above_m2 == 0) & (n_merger_above_m3 == 0) & andromeda
+int_selection = (n_merger_m1 == 1) & (n_merger_m2 == 1) & (n_merger_m3 == 1) & (n_merger_above_m1 == 0) & (n_merger_above_m2 == 0) & (n_merger_above_m3 == 0) & andromeda & missing
 
 # load initial indices of MW halos
 inds_mw = np.load(f"data/inds_mw_{sim_name:s}.npy")
@@ -132,11 +132,11 @@ for i in range(ind_start, ind_stop + 1):
     Merger_this = mt_data_this['merger']
 
     if i == 0:
-        #initial_selection = (Merger_this['HaloMass'] > mass_fin_lb) & (Merger_this['HaloMass'] <= mass_fin_hb) & (Merger_this['MainProgenitor'] > 0) & (Merger_this['IsPotentialSplit'] == 0)
         merger_mass = np.zeros(len(zs_mt[:(ind_stop+1)]))
         merger_mass_int = np.zeros(len(zs_mt[:(ind_stop+1)]))
         main_progs = np.arange(len(Merger_this['HaloMass']), dtype=int)[inds_mw]
         main_progs_int = main_progs[int_selection]
+        main_progs = main_progs[missing]
     merger_mass[i] = np.median(Merger_this['HaloMass'][main_progs[main_progs > 0]])
     merger_mass_int[i] = np.median(Merger_this['HaloMass'][main_progs_int[main_progs_int > 0]])
 
@@ -144,14 +144,14 @@ for i in range(ind_start, ind_stop + 1):
     Merger_this['MainProgenitor'][Merger_this['MainProgenitor'] < 0] = 0
 
     # rework the main progenitor and halo indices to return in proper order
-    Merger_this['MainProgenitor'] = correct_inds(Merger_this['MainProgenitor'], N_halos_slabs_prev, slabs_prev, inds_fn_prev)
+    main_progs_next = correct_inds(Merger_this['MainProgenitor'][main_progs], N_halos_slabs_prev, slabs_prev, inds_fn_prev)
+    main_progs_int_next = correct_inds(Merger_this['MainProgenitor'][main_progs_int], N_halos_slabs_prev, slabs_prev, inds_fn_prev)
     
     # update the main progenitor indices for the next
-    main_progs = Merger_this['MainProgenitor'][main_progs]
-    main_progs_int = Merger_this['MainProgenitor'][main_progs_int]
-    print("halos with no information", np.sum(main_progs <= 0)) # there should be no negative ones
+    main_progs = main_progs_next
+    main_progs_int = main_progs_int_next
+    print("halos with no information at z", np.sum(main_progs <= 0), z_this) # there should be no negative ones
     print("halos of interest with no information", np.sum(main_progs_int <= 0)) # there should be no negative ones
-    #main_progs = main_progs[main_progs > 0]
 np.save(f"data/merger_mass_{sim_name:s}.npy", merger_mass)
 np.save(f"data/merger_mass_int_{sim_name:s}.npy", merger_mass_int)
 np.save(f"data/zs_mt_{sim_name:s}.npy", zs_mt[:(ind_stop+1)])
